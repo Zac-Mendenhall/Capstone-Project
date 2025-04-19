@@ -3,6 +3,17 @@ Individual work for Capstone project
 
 # Swire Coca-Cola Case Competition – Customer Segmentation (Individual Work)
 
+## Business Problem
+Regional beverage bottler Swire Coca-Cola (SCCU) relies on two business models: 1)
+“Red Truck”, which features high-volume customers serviced personally by Swire,
+and 2) “White Truck” or “Alternate Route to Market”, which entails smaller customers
+serviced by a third-party distributor.
+Swire’s current segmenting strategy has led to misallocation of resources, inflated
+expenses, and missed opportunities from clients with high-growth potential. Swire
+aims to better algin their customers with the business proposition of these models by
+identifying customer characteristics and ordering behavior that better determines
+the right business model for the long-term relationship.
+
 ## Project Overview
 This portfolio presents my individual work on the Swire Coca-Cola case competition, where the goal was to improve customer targeting and strategies.
 
@@ -30,7 +41,7 @@ Understanding customer segments helps optimize marketing and sales strategies by
 
 ---
 
-## Key Findings
+## Individual Key Findings
 - **Cluster 3** contained the majority of customers, interpreted as typical small/medium buyers—ideal targets for growth support.
 - **Cluster 1** showed abnormal behavior (e.g., fulfillment rates over 40x), likely data anomalies.
 - Segmentation highlighted clear distinctions between elite, corporate, and everyday buyers.
@@ -38,11 +49,20 @@ Understanding customer segments helps optimize marketing and sales strategies by
 
 ---
 
-## Talking Points for Interviews
-- How I used clustering to segment customers and drive strategic insights.
-- Why fulfillment rate (not just volume) can be more informative in B2B contexts.
-- The value of removing data anomalies when fitting unsupervised models.
-- Creating simple but actionable deliverables from complex data.
+## Group Solution Summary
+Our team proposed replacing Swire’s one-size-fits-all 400-gallon annual volume threshold with a behavior-based segmentation strategy. Rather than evaluating customers solely on annual volume, we incorporated metrics such as average order size, order frequency, and fulfillment behavior.
+By blending customer transaction data with market context, we were able to segment customers into actionable groups. This approach better identifies high-potential customers—especially those with strong fulfillment behavior but low total volume—and enables the sales team to allocate resources more effectively.
+This strategy increases efficiency and scalability while uncovering previously overlooked growth opportunities.
+
+---
+
+## Difficulties
+The main challenge we faced was a lack of long-term historical data. With only two years of transactions available, identifying consistent behavioral trends was more difficult. To address this, we developed models that could scale with additional internal data, allowing Swire to continuously improve segmentation over time.
+
+---
+
+## What I Learned
+The biggest takeaway for me in this project was learning how to collaborate on a large, code-based problem as part of a group. In my current work, I typically work independently and rely on my own judgment to solve problems. Collaborating with my team to develop solutions was great practice for future projects and a valuable reminder to always listen to others, you never know what insights you might gain from their perspective.
 
 ---
 
