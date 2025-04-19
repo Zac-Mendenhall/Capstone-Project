@@ -1,0 +1,134 @@
+---
+title: "Modeling"
+author: "Zac Mendenhall"
+date: "March, 2025"
+output: 
+  html_document:
+    number_sections: no
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+```{r, results = "hide", warning=FALSE, message=FALSE}
+library(tidyverse)
+library(dplyr)
+library(lubridate)
+library(janitor)
+library(cluster)
+library(factoextra)
+library(tibble)
+library(knitr)
+
+
+# Load Data
+transactional_data <- read.csv("C:/Users/Zachary Mendenhall/Desktop/Masters/Capstone/Individual/transactional_data.csv", stringsAsFactors = FALSE)
+
+# Data Cleaning
+transactional_df <- transactional_data %>%
+  clean_names() %>%
+  mutate(transaction_date = ymd(transaction_date),
+         customer_number = as.character(customer_number)) %>%
+  group_by(customer_number) %>%
+  summarise(
+    total_ordered_cases = sum(ordered_cases, na.rm = TRUE),
+    total_delivered_cases = sum(delivered_cases, na.rm = TRUE),
+    net_delivered_cases = sum(ifelse(delivered_cases < 0, 0, delivered_cases), na.rm = TRUE),
+    fulfillment_rate = ifelse(total_ordered_cases == 0, NA, net_delivered_cases / total_ordered_cases),
+    total_returned_cases = sum(abs(delivered_cases[delivered_cases < 0]), na.rm = TRUE),
+    total_ordered_gallons = sum(ordered_gallons, na.rm = TRUE),
+    total_delivered_gallons = sum(delivered_gallons, na.rm = TRUE),
+    net_delivered_gallons = sum(ifelse(delivered_gallons < 0, 0, delivered_gallons), na.rm = TRUE),
+    fulfillment_rate_gallons = ifelse(total_ordered_gallons == 0, NA, net_delivered_gallons / total_ordered_gallons),
+    total_returned_gallons = sum(abs(delivered_gallons[delivered_gallons < 0]), na.rm = TRUE)
+  ) %>%
+  filter(!is.na(fulfillment_rate) & !is.na(fulfillment_rate_gallons))
+
+# Clustering - 4 Clusters
+set.seed(123)
+clustering_data <- transactional_df %>%
+  select(total_ordered_cases, total_delivered_cases, fulfillment_rate, total_ordered_gallons, total_delivered_gallons, fulfillment_rate_gallons) %>%
+  scale()
+
+kmeans_model <- kmeans(clustering_data, centers = 4, nstart = 10)
+transactional_df$cluster <- kmeans_model$cluster
+```
+
+# Fulfillment Clustering
+Data was transformed in the clustering process to determine fulfillment rate for gallons and cases (gallons and cases ordered vs what was delivered). This transactional data was then fitting into a clustering model. For time saving in knitting and processing, optimal clustering process was left off from here but determined to be in the 4 to 5 range. 
+
+After clustering the first time, cluster 4 was removed as that data seemed erroneous and simply a data issue. Then I ran clustering for 5.
+
+Results: 
+
+- Cluster 1 (39 customers) has an abnormally high fulfillment rate (43.07) → Possible data errors or unusual cases.
+- Cluster 3 (24,298 customers) is still  broad — this is where we may need further refinement.
+- Cluster 4 (128 customers) is a clear middle-tier of high-volume buyers.
+- Cluster 5 (8 customers) represents the absolute largest buyers—probably wholesalers or major corporate clients.
+
+```{r}
+# Results and Key Takeaways
+transactional_df <- transactional_df %>% filter(cluster != 4)
+clustering_data <- transactional_df %>% select(-customer_number) %>% scale()
+kmeans_model <- kmeans(clustering_data, centers = 5, nstart = 10)
+transactional_df$cluster <- kmeans_model$cluster
+
+# Summarize new clusters
+transactional_df %>%
+  group_by(cluster) %>%
+  summarise(
+    avg_ordered = mean(total_ordered_cases, na.rm = TRUE),
+    avg_delivered = mean(total_delivered_cases, na.rm = TRUE),
+    avg_fulfillment_rate = mean(fulfillment_rate, na.rm = TRUE),
+    count = n()
+  )
+
+# Visualize clusters
+fviz_cluster(kmeans_model, data = clustering_data)
+
+# Display results
+cluster_summary <- tibble(
+  Cluster = c("Cluster 1", "Cluster 2", "Cluster 3", "Cluster 4", "Cluster 5"),
+  Avg_Ordered = c(1.92, 186452.9, 978.69, 56778.0, 472528.8),
+  Avg_Delivered = c(75.77, 177788.6, 908.96, 53204.9, 455473.8),
+  Avg_Fulfillment_Rate = c(43.07, 0.95, 0.96, 0.94, 0.96),
+  Count = c(39, 22, 24298, 128, 8),
+  Interpretation = c(
+    "Very small orders, possibly misclassified or extreme cases",
+    "Large volume buyers (high-end distributors)",
+    "Typical small/medium business buyers",
+    "Medium-volume corporate buyers",
+    "Elite large buyers (possibly wholesalers)"
+  )
+)
+print(kable(cluster_summary, caption = "Cluster Summary Table"))
+```
+# Clustered Fulfillment Rate Summary
+## Extract Gallons and Cases Customers from Cluster Three for Summary
+```{r, results = "hide", warning=FALSE, message=FALSE}
+# Extract Gallons and Cases Customers from Cluster Three
+
+cluster_3_customers <- transactional_df %>% filter(cluster == 3)
+
+cluster_3_cases <- cluster_3_customers %>%
+  select(customer_number, total_ordered_cases, total_delivered_cases, fulfillment_rate, total_returned_cases) %>%
+  filter(!is.na(fulfillment_rate)) %>%
+  arrange(desc(fulfillment_rate))
+
+cluster_3_gallons <- cluster_3_customers %>%
+  select(customer_number, total_ordered_gallons, total_delivered_gallons, fulfillment_rate_gallons, total_returned_gallons) %>%
+  filter(!is.na(fulfillment_rate_gallons)) %>%
+  arrange(desc(fulfillment_rate_gallons))
+
+print(head(cluster_3_cases))
+print(head(cluster_3_gallons))
+
+```
+
+Cluster 3 contained the majority of our data and was identified as representing typical small to medium-sized business buyers. These businesses, depending on their industry and operations, often have greater potential for growth or change compared to corporate buyers.
+
+To analyze their fulfillment patterns, I split this cluster into two separate datasets:
+
+- Gallons Dataset – Includes customer fulfillment rate in gallons along with their returns.
+- Cases Dataset – Includes customer fulfillment rate in cases along with their returns.
+
+By leveraging this clustered fullfillment information, Swire’s sales team can identify customers who are selling more than they order and prioritize those with the highest potential for growth. This allows them to focus time and resources on businesses that would benefit from additional support, ultimately strengthening customer relationships and increasing sales opportunities.
